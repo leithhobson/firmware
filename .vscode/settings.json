@@ -4,5 +4,6 @@
   "trunk.enableWindows": true,
   "files.insertFinalNewline": false,
   "files.trimFinalNewlines": false,
-  "cmake.configureOnOpen": false
+  "cmake.configureOnOpen": false,
+  "prettier.enable": false
 }
