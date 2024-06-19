@@ -563,6 +563,13 @@ void setup()
     nrf52Setup();
 #endif
 
+#ifdef RAK4630
+    /* WisBLOCK 5801 Power On*/
+	pinMode(17, OUTPUT);
+	digitalWrite(17, HIGH);
+	/* WisBLOCK 5801 Power On*/
+#endif
+
 #ifdef ARCH_RP2040
     rp2040Setup();
 #endif
@@ -1041,6 +1048,63 @@ void loop()
 
     service.loop();
 
+#ifdef RAK4630
+
+    delay(100);
+    
+    int i;
+	int mcu_ain_raw = 0;	
+	int average_raw_12bit;
+    int average_raw;
+	float voltage_ain;
+	float current_sensor; 							// variable to store the value coming from the sensor
+    float water_depth;
+
+    float scaled = 0;
+
+    // Print ADC scaler
+
+    // Serial.printf("-------ADC Scaler------ = %f\n", analogReadResolution());
+
+    // Set ADC scaler to default
+    // analogReadResolution(10);
+
+    // Scale ADC values
+
+    float operativeAdcMultiplier =
+            config.power.adc_multiplier_override > 0 ? config.power.adc_multiplier_override : ADC_MULTIPLIER;
+
+
+	for (i = 0; i < 6; i++)
+	{
+		mcu_ain_raw += analogRead(PIN_A1);				// select the input pin A1 for the potentiometer
+	}
+
+    mcu_ain_raw = mcu_ain_raw / 6;
+    scaled = operativeAdcMultiplier * ((1000 * AREF_VOLTAGE) / pow(2, BATTERY_SENSE_RESOLUTION_BITS)) * mcu_ain_raw;
+
+
+    Serial.printf("-------average_raw------ = %d\n", mcu_ain_raw);
+    Serial.printf("-------scaled------ = %f\n", scaled);
+    Serial.printf("-------ratio------ = %f\n", scaled/mcu_ain_raw);
+
+    // average_raw = scaled / 4;
+    average_raw = mcu_ain_raw / 4;
+
+	voltage_ain = average_raw * 3.6 / 1024; 		//raef 3.6v / 10bit ADC
+    
+    Serial.printf("-------voltage_ain------ = %f V\n", voltage_ain);
+
+	current_sensor = voltage_ain / 149.9*1000; 	//WisBlock RAK5801 (0 ~ 20mA) I=U/149.9(mA)
+
+    water_depth = (current_sensor-4)/16*500 - 25;    // 4mA = 0cm, 20mA = 500cm
+
+    Serial.printf("-------current_sensor------ = %f mA\n", current_sensor);
+    Serial.printf("-------Water Depth------ = %f cm\n", water_depth);
+
+#endif
+
+
     long delayMsec = mainController.runOrDelay();
 
     /* if (mainController.nextThread && delayMsec)
@@ -1053,4 +1117,5 @@ void loop()
         mainDelay.delay(delayMsec);
     }
     // if (didWake) LOG_DEBUG("wake!\n");
+
 }
